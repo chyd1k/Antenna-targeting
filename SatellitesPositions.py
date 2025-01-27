@@ -53,35 +53,3 @@ class SatellitesManager:
         # print('Distance: {:.1f} km'.format(distance.km))
 
         return az.degrees, alt.degrees, distance.km
-
-        # azValue = int(str(az).replace('deg', '').split(" ")[0])
-
-        # a = 123
-        # if alt.degrees >= MIN_DEGREE and azValue >= MIN_AZ and azValue <= MAX_AZ:
-        #     print(sat.name, alt, az)
-        
-
-
-# TLE_FILE = "https://celestrak.com/NORAD/elements/active.txt" # DB file to download
-
-# MIN_DEGREE = 45
-# MIN_AZ = 50
-# MAX_AZ = 140
-
-# satellites = load.tle(TLE_FILE)
-# ts = load.timescale()
-# t = ts.now()
-
-# # Локация с которой мы наблюдаем
-# location = Topos('52.173141 N', '44.108612 E')
-
-# for sat in satellites.values():
-#     difference = sat - location
-#     topocentric = difference.at(t)
-
-#     alt, az, distance = topocentric.altaz()
-
-#     azValue = int(str(az).replace('deg', '').split(" ")[0])
-
-#     if alt.degrees >= MIN_DEGREE and azValue >= MIN_AZ and azValue <= MAX_AZ:
-#         print(sat.name, alt, az)
