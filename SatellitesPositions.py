@@ -1,18 +1,16 @@
 import datetime
 import time
 from skyfield.api import load, Topos, EarthSatellite
-
 import pathlib
+
 
 class SatellitesManager:
 
     def __init__(self):
         self.__TLE_FILE = str(pathlib.Path(__file__).parent.resolve().absolute()) + "\\active_satellites.tle"
-
         self.__satellites = load.tle(self.__TLE_FILE)
         # self.print_satellites_info()
 
-    
     def print_satellites_info(self):
         # [print(sat) for sat in self.__satellites.values()]
         # [print(i) for i in self.__satellites]
