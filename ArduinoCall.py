@@ -17,6 +17,7 @@ class ArduinoMessenger:
         self.ports = list(serial.tools.list_ports.comports())
     
     def __exit__(self, exc_type, exc_value, traceback):
+        self.aim_on_satellite(0., 0.)
         self.disactivate_port()
 
     def __send_msg(self, message: str):
@@ -44,6 +45,14 @@ class ArduinoMessenger:
             print(f"Порт: {port.device}")
             print(f"Описание: {port.description}")
             print(f"Производитель: {port.manufacturer}\n")
+
+    def is_port_avaliable(self, port_name: str):
+        port_avaliable = False
+        for i in self.ports:
+            if (i.device == port_name):
+                port_avaliable = True
+                break
+        return port_avaliable
 
     def is_port_active(self):
         return self.__port_is_active
