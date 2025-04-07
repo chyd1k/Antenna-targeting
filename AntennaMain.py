@@ -13,7 +13,7 @@ class TrackingThread(QThread):
     Класс потока для выполнения отслеживания в фоновом режиме.
     """
     update_tracking = pyqtSignal()  # Сигнал для перерасчёта
-    
+
     def __init__(self):
         super().__init__()
         self.tracking_mode = False  # Флаг для управления выполнением потока
@@ -49,7 +49,7 @@ class AntennaDialog(QDialog):
         self.__COM_PORTS = ['COM1', 'COM2', 'COM3', 'COM4', 'COM5']
         self.combo1.addItems(self.__COM_PORTS)
         [self.combo1.setItemData(i, QColor("red"), Qt.TextColorRole) for i in range(len(self.__COM_PORTS))]
-        
+
         # Создание ArduinoMessenger
         self.arduino_messenger = ArduinoMessenger()
         self.arduino_messenger.show_avaliable_ports()
@@ -209,13 +209,15 @@ class AntennaDialog(QDialog):
         # Install event filter on the main window
         self.installEventFilter(self)
 
-    
+
     def closeEvent(self, event):
         """
         Обработка события закрытия окна.
         Здесь можно выполнить действия перед закрытием приложения.
         """
         self.align_on_north()
+        if (self.arduino_messenger.is_port_active()):
+            self.arduino_messenger.disactivate_port()
         event.accept()  # Принять событие закрытия
 
     def eventFilter(self, obj, event):
@@ -239,24 +241,28 @@ class AntennaDialog(QDialog):
         """Decrease angle value by 1."""
         self.running_aim_az = (self.running_aim_az - 1) % 360
         self.azimuth_output.setText(f"{self.running_aim_az:.1f}")
+        self.arduino_messenger.aim_on_satellite(self.running_aim_az, self.running_aim_alt)
 
     def increase_azimuth(self):
         """Increase angle value by 1."""
         self.running_aim_az = (self.running_aim_az + 1) % 360
         self.azimuth_output.setText(f"{self.running_aim_az:.1f}")
+        self.arduino_messenger.aim_on_satellite(self.running_aim_az, self.running_aim_alt)
 
     def increase_elevation(self):
         """Increase degree value by 1."""
         if self.running_aim_alt < 90:
             self.running_aim_alt += 1
             self.elevation_output.setText(f"{self.running_aim_alt:.1f}")
+        self.arduino_messenger.aim_on_satellite(self.running_aim_az, self.running_aim_alt)
 
     def decrease_elevation(self):
         """Decrease degree value by 1."""
         if self.running_aim_alt > 0:
             self.running_aim_alt -= 1
             self.elevation_output.setText(f"{self.running_aim_alt:.1f}")
-    
+        self.arduino_messenger.aim_on_satellite(self.running_aim_az, self.running_aim_alt)
+
     def update_stylesheet_combo1(self, ind: int):
         port_avaliable = self.arduino_messenger.is_port_avaliable(self.__COM_PORTS[ind])
         color = "green" if port_avaliable else "red"
@@ -275,11 +281,11 @@ class AntennaDialog(QDialog):
         self.running_aim_az = 0.
         self.running_aim_alt = 0.
         self.arduino_messenger.aim_on_satellite(self.running_aim_az, self.running_aim_alt)
-    
+
     def set_buttons_enabled(self, enabled: bool):
         """Блокирует или разблокирует все кнопки диалога."""
         [
-            button.setEnabled(enabled) 
+            button.setEnabled(enabled)
             for button in [
                 self.refresh_button, self.track_button,
                 self.user_aim, self.combo1, self.combo2,
@@ -339,7 +345,7 @@ class AntennaDialog(QDialog):
         self.az_alt_dist[ind] = [az, alt, dist]
         self.update_stylesheet_combo2(ind)
         self.update_aim_parameters(ind)
-    
+
     def on_combo1_change(self):
         """
         Обработчик изменения выбранного значения в первом ComboBox.
@@ -382,6 +388,9 @@ class AntennaDialog(QDialog):
         """
         Обработчик нажатия кнопки 'Отслеживать'.
         """
+        if (len(self.arduino_messenger.ports) == 0):
+            return
+        
         self.combo1.setEnabled(self.tracking_thread.tracking_mode)
         self.combo2.setEnabled(self.tracking_thread.tracking_mode)
         self.latitude_input.setEnabled(self.tracking_thread.tracking_mode)
@@ -393,16 +402,19 @@ class AntennaDialog(QDialog):
             self.installEventFilter(self)
             self.tracking_thread.tracking_mode = False
             self.track_button.setText("Отслеживать")
-            if (len(self.arduino_messenger.ports) != 0):
-                self.arduino_messenger.disactivate_port()
             return
 
         self.track_button.setText("Остановить отслеживание")
         self.tracking_thread.tracking_mode = True
-        port_avaliable = self.arduino_messenger.is_port_avaliable(self.__COM_PORTS[self.combo1.currentIndex()])
-        if (len(self.arduino_messenger.ports) != 0 and port_avaliable):
-            self.arduino_messenger.set_active_port(self.__COM_PORTS[self.combo1.currentIndex()])
         
+        port_name = self.__COM_PORTS[self.combo1.currentIndex()]
+        if (self.arduino_messenger.is_port_active()):
+            if (port_name != self.arduino_messenger.get_active_port_name()):
+                self.arduino_messenger.disactivate_port()
+                self.arduino_messenger.set_active_port(port_name)
+        else:
+            self.arduino_messenger.set_active_port(port_name)
+
         if not self.tracking_thread.isRunning():  # Проверяем, что поток не запущен уже
             self.removeEventFilter(self)
             self.tracking_thread.start()  # Запускаем поток
@@ -413,3 +425,60 @@ if __name__ == '__main__':
     ex = AntennaDialog()
     ex.show()
     sys.exit(app.exec_())
+
+# if __name__ == "__main__":
+#     arduino_messenger = ArduinoMessenger()
+#     if (len(arduino_messenger.ports)) == 0:
+#         print("No avaliable ports found!\n")
+
+#     arduino_messenger.set_active_port("COM3")
+
+#     satellites_manager = SatellitesManager()
+
+#     satellite_name = "KONDOR-FKA NO. 2"
+#     local_position_lat = 55.903243
+#     local_position_lon = 37.641497
+
+#     az, al, dist = satellites_manager.get_aim_degrees(satellite_name, local_position_lat, local_position_lon)
+
+
+
+
+    # # get list of satellites
+    # active_satellites = []
+    # # get list of avalible ports
+    # avalible_ports = []
+
+    # # interface
+    # satellite_pos = get_satellite_pos() # 5
+    # local_position_lat = get_local_position_lat() # 49.5
+    # local_position_lon = get_local_position_lon() # 52.7
+
+    # # interface
+    # choosen_port = get_choosen_port()
+
+    # # SatellitesPositions
+    # az, ugol_mesta = get_aim_degrees(satellite_pos, local_position_lat, local_position_lon)
+
+    # # Moove antenna
+    # aim_on_satellite(az, ugol_mesta)
+
+
+
+    # # getPorts()
+
+    # # Открываем Serial порт ('COMX' замените на имя вашего порта)
+    # ser = serial.Serial('COM3', 9600)
+    # sleep(start_timer)
+
+    # while True:
+    #     str = input("Write your msg:\n")
+    #     if str == "":
+    #         break
+    #     send_msg(str)
+    #     wait_for_responce()
+    # # Закрываем порт
+    # ser.close()
+
+    # #result = bytes.fromhex("1B")
+    # #print("12345678910_".encode() + result)

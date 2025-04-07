@@ -80,6 +80,6 @@ class ArduinoMessenger:
         self.__port_is_active = False
 
     def aim_on_satellite(self, az: float, ugol_mesta: float):
-        message = f"A{az}U{ugol_mesta}"
+        message = f"A{round(az, 2)}U{round(ugol_mesta, 2)}"
         self.__send_msg(message)
         # self.__wait_for_responce()
