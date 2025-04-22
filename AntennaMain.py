@@ -43,6 +43,9 @@ class AntennaDialog(QDialog):
         self.local_position_lat = 59.9576652
         self.local_position_lon = 30.2861037
 
+        # Уровень горизонта, с которого можно считать, что аппарат может быть наблюдаем
+        self.__HORIZON_LEVEL = 7.
+
         self.latitude_input.setText(str(self.local_position_lat))
         self.longitude_input.setText(str(self.local_position_lon))
 
@@ -74,7 +77,7 @@ class AntennaDialog(QDialog):
         for i in range(len(satellites_names)):
             az, alt, dist = self.satellites_manager.get_aim_degrees(satellites_names[i], self.local_position_lat, self.local_position_lon)
             self.az_alt_dist[i] = [az, alt, dist]
-            self.combo2.setItemData(i, QColor("green" if alt > 0. else "red"), Qt.TextColorRole)
+            self.combo2.setItemData(i, QColor("green" if alt > self.__HORIZON_LEVEL else "red"), Qt.TextColorRole)
         self.update_aim_parameters(0)
         self.update_stylesheet_combo2(0)
         self.combo2.currentIndexChanged.connect(self.on_combo2_change)  # Подключение сигнала
@@ -118,7 +121,7 @@ class AntennaDialog(QDialog):
         self.latitude_input.setPlaceholderText('Введите широту')
 
         # Установка валидатора для ввода только вещественных чисел
-        validator = QDoubleValidator(0.0, 90.0, 6)  # Ограничение по диапазону широты
+        validator = QDoubleValidator(0., 90., 6)  # Ограничение по диапазону широты
         self.latitude_input.setValidator(validator)
 
         coord_layout.addWidget(QLabel('Широта:'))
@@ -129,7 +132,7 @@ class AntennaDialog(QDialog):
         self.longitude_input.setPlaceholderText('Введите долготу')
 
         # Установка валидатора для ввода только вещественных чисел
-        validator2 = QDoubleValidator(0.0, 360.0, 6)  # Ограничение по диапазону долготы
+        validator2 = QDoubleValidator(0., 360., 6)  # Ограничение по диапазону долготы
         self.longitude_input.setValidator(validator2)
 
         coord_layout.addWidget(QLabel('Долгота:'))
@@ -271,7 +274,7 @@ class AntennaDialog(QDialog):
         self.combo1.setStyleSheet(styleSheet)
 
     def update_stylesheet_combo2(self, ind: int):
-        color = "green" if self.az_alt_dist[ind][1] > 0. else "red"
+        color = "green" if self.az_alt_dist[ind][1] > self.__HORIZON_LEVEL else "red"
         self.combo2.setItemData(ind, QColor(color), Qt.TextColorRole)
         styleSheet = "QComboBox { color: "+ color + "; }\n"
         self.combo2.setStyleSheet(styleSheet)
@@ -316,7 +319,7 @@ class AntennaDialog(QDialog):
             if text_value:  # Проверяем, что строка не пустая
                 self.local_position_lat = float(text_value)  # Обновляем переменную на введенное значение
             else:
-                self.local_position_lat = 0.0  # Если поле пустое, сбрасываем значение на ноль
+                self.local_position_lat = 0.  # Если поле пустое, сбрасываем значение на ноль
                 self.latitude_input.setText(str(self.local_position_lat))
         except ValueError:
             pass  # Игнорируем ошибки преобразования
@@ -330,7 +333,7 @@ class AntennaDialog(QDialog):
             if text_value:  # Проверяем, что строка не пустая
                 self.local_position_lon = float(text_value)  # Обновляем переменную на введенное значение
             else:
-                self.local_position_lon = 0.0  # Если поле пустое, сбрасываем значение на ноль
+                self.local_position_lon = 0.  # Если поле пустое, сбрасываем значение на ноль
                 self.longitude_input.setText(str(self.local_position_lon))
         except ValueError:
             pass  # Игнорируем ошибки преобразования
@@ -425,60 +428,3 @@ if __name__ == '__main__':
     ex = AntennaDialog()
     ex.show()
     sys.exit(app.exec_())
-
-# if __name__ == "__main__":
-#     arduino_messenger = ArduinoMessenger()
-#     if (len(arduino_messenger.ports)) == 0:
-#         print("No avaliable ports found!\n")
-
-#     arduino_messenger.set_active_port("COM3")
-
-#     satellites_manager = SatellitesManager()
-
-#     satellite_name = "KONDOR-FKA NO. 2"
-#     local_position_lat = 55.903243
-#     local_position_lon = 37.641497
-
-#     az, al, dist = satellites_manager.get_aim_degrees(satellite_name, local_position_lat, local_position_lon)
-
-
-
-
-    # # get list of satellites
-    # active_satellites = []
-    # # get list of avalible ports
-    # avalible_ports = []
-
-    # # interface
-    # satellite_pos = get_satellite_pos() # 5
-    # local_position_lat = get_local_position_lat() # 49.5
-    # local_position_lon = get_local_position_lon() # 52.7
-
-    # # interface
-    # choosen_port = get_choosen_port()
-
-    # # SatellitesPositions
-    # az, ugol_mesta = get_aim_degrees(satellite_pos, local_position_lat, local_position_lon)
-
-    # # Moove antenna
-    # aim_on_satellite(az, ugol_mesta)
-
-
-
-    # # getPorts()
-
-    # # Открываем Serial порт ('COMX' замените на имя вашего порта)
-    # ser = serial.Serial('COM3', 9600)
-    # sleep(start_timer)
-
-    # while True:
-    #     str = input("Write your msg:\n")
-    #     if str == "":
-    #         break
-    #     send_msg(str)
-    #     wait_for_responce()
-    # # Закрываем порт
-    # ser.close()
-
-    # #result = bytes.fromhex("1B")
-    # #print("12345678910_".encode() + result)
